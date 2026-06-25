@@ -2,6 +2,7 @@
 import { shallowRef } from 'vue'
 import type { Shell } from '@/types/shell'
 import { formatRelativeTime, formatExactTime } from '@/utils/formatTime'
+import CommentEditor from './CommentEditor.vue'
 
 const props = defineProps<{
   shell: Shell
@@ -12,7 +13,7 @@ const emit = defineEmits<{
   favorite: [id: string]
   delete: [id: string]
   preview: [src: string]
-  comment: [id: string]
+  comment: [id: string, payload: { nickname: string; content: string }]
 }>()
 
 const showExact = shallowRef(false)
@@ -50,8 +51,8 @@ function toggleComments() {
   showComments.value = !showComments.value
 }
 
-function submitComment() {
-  emit('comment', props.shell.id)
+function submitComment(payload: { nickname: string; content: string }) {
+  emit('comment', props.shell.id, payload)
 }
 
 function displayTime() {
@@ -132,6 +133,7 @@ function displayTime() {
       </div>
 
       <slot name="comment-editor" />
+      <CommentEditor v-if="showComments" @submit="submitComment" />
     </div>
   </div>
 </template>
