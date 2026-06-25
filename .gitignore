@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# OpenCode / agent artifacts
+.agents/
+skills-lock.json
