@@ -12,9 +12,11 @@ const emit = defineEmits<{
   favorite: [id: string]
   delete: [id: string]
   preview: [src: string]
+  comment: [id: string]
 }>()
 
 const showExact = shallowRef(false)
+const showComments = shallowRef(false)
 
 const imageClass = () => {
   if (props.shell.images.length === 1) return 'single'
@@ -42,6 +44,14 @@ function remove() {
 
 function previewImage(src: string) {
   emit('preview', src)
+}
+
+function toggleComments() {
+  showComments.value = !showComments.value
+}
+
+function submitComment() {
+  emit('comment', props.shell.id)
 }
 
 function displayTime() {
@@ -75,6 +85,15 @@ function displayTime() {
           <span>{{ shell.favorited ? '⭐' : '☆' }}</span>
           <span>{{ shell.favorites }}</span>
         </button>
+        <button
+          type="button"
+          class="icon-btn comment"
+          :class="{ active: showComments }"
+          @click="toggleComments"
+        >
+          <span>💬</span>
+          <span>{{ shell.comments.length }}</span>
+        </button>
         <button type="button" class="icon-btn delete" @click="remove" title="删除">
           🗑️
         </button>
@@ -92,6 +111,27 @@ function displayTime() {
       >
         <img :src="src" alt="贝壳图片" />
       </div>
+    </div>
+
+        <div v-if="showComments" class="comments-section">
+      <div v-if="shell.comments.length === 0" class="comments-empty">
+        还没有评论，来说两句吧~
+      </div>
+      <div v-else class="comments-list">
+        <div
+          v-for="comment in shell.comments"
+          :key="comment.id"
+          class="comment-item"
+        >
+          <div class="comment-header">
+            <span class="comment-author">{{ comment.nickname || '匿名拾贝人' }}</span>
+            <span class="comment-time">{{ formatRelativeTime(comment.createdAt) }}</span>
+          </div>
+          <div class="comment-content">{{ comment.content }}</div>
+        </div>
+      </div>
+
+      <slot name="comment-editor" />
     </div>
   </div>
 </template>
@@ -187,10 +227,68 @@ function displayTime() {
   background: rgba(245, 158, 11, 0.08);
 }
 
+.icon-btn.comment.active {
+  color: #0ea5e9;
+}
+
+.icon-btn.comment.active:hover {
+  background: rgba(14, 165, 233, 0.08);
+}
+
 .shell-content {
   color: #334155;
   line-height: 1.7;
   margin-bottom: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.comments-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(203, 213, 225, 0.5);
+}
+
+.comments-empty {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  padding: 8px 0;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.comment-item {
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.comment-author {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.comment-time {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.comment-content {
+  font-size: 0.9rem;
+  color: #334155;
+  line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
 }

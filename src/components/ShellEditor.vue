@@ -113,6 +113,11 @@ async function submit() {
   box-shadow: 0 8px 32px rgba(14, 165, 233, 0.15);
   margin-bottom: 24px;
   border: 1px solid rgba(255, 255, 255, 0.75);
+  box-sizing: border-box;
+}
+
+.editor * {
+  box-sizing: border-box;
 }
 
 .input-group {

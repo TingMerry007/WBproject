@@ -1,4 +1,4 @@
-import type { Shell } from '@/types/shell'
+import type { Comment, Shell } from '@/types/shell'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
 
@@ -66,4 +66,18 @@ export async function toggleShellFavorite(id: string): Promise<Shell> {
     method: 'POST'
   })
   return handleResponse(response) as Promise<Shell>
+}
+
+export async function fetchComments(id: string): Promise<Comment[]> {
+  const response = await fetch(`${API_BASE}/shells/${id}/comments`)
+  return handleResponse(response) as Promise<Comment[]>
+}
+
+export async function createComment(id: string, payload: { nickname: string; content: string }): Promise<{ comment: Comment; shell: Shell }> {
+  const response = await fetch(`${API_BASE}/shells/${id}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  return handleResponse(response) as Promise<{ comment: Comment; shell: Shell }>
 }

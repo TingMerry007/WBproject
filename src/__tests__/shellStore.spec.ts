@@ -8,7 +8,8 @@ vi.mock('../api/shellApi', () => ({
   createShell: vi.fn(),
   deleteShell: vi.fn(),
   toggleShellLike: vi.fn(),
-  toggleShellFavorite: vi.fn()
+  toggleShellFavorite: vi.fn(),
+  createComment: vi.fn()
 }))
 
 const mockedShellApi = vi.mocked(shellApi)
@@ -36,6 +37,7 @@ describe('useShellStore', () => {
         likes: 0,
         liked: false,
         favorites: 0,
+        comments: [],
         favorited: false,
         createdAt: '2026-06-25T10:00:00.000Z'
       }

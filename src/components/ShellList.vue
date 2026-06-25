@@ -2,6 +2,7 @@
 import { shallowRef, computed } from 'vue'
 import { useShellStore } from '@/stores/shellStore'
 import ShellCard from './ShellCard.vue'
+import CommentEditor from './CommentEditor.vue'
 
 const store = useShellStore()
 
@@ -10,6 +11,7 @@ const emit = defineEmits<{
 }>()
 
 const showFavoritesOnly = shallowRef(false)
+const activeCommentShellId = shallowRef('')
 const displayShells = computed(() =>
   showFavoritesOnly.value ? store.favoriteShells : store.shells
 )
@@ -28,6 +30,14 @@ async function handleDelete(id: string) {
 
 function handlePreview(src: string) {
   emit('preview', src)
+}
+
+function handleToggleComments(id: string) {
+  activeCommentShellId.value = activeCommentShellId.value === id ? '' : id
+}
+
+async function handleComment(id: string, payload: { nickname: string; content: string }) {
+  await store.addComment(id, payload)
 }
 </script>
 
@@ -66,7 +76,15 @@ function handlePreview(src: string) {
         @favorite="handleFavorite"
         @delete="handleDelete"
         @preview="handlePreview"
-      />
+        @comment="handleToggleComments"
+      >
+        <template #comment-editor>
+          <CommentEditor
+            v-if="activeCommentShellId === shell.id"
+            @submit="(payload) => handleComment(shell.id, payload)"
+          />
+        </template>
+      </ShellCard>
     </div>
   </div>
 </template>

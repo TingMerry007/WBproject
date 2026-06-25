@@ -11,6 +11,7 @@ interface Shell {
   liked: boolean
   favorites: number
   favorited: boolean
+  comments: { id: string; nickname: string; content: string; createdAt: string }[]
   createdAt: string
 }
 
@@ -79,6 +80,7 @@ describe('API', () => {
       expect(body.liked).toBe(false)
       expect(body.favorites).toBe(0)
       expect(body.favorited).toBe(false)
+      expect(body.comments).toEqual([])
       expect(body.createdAt).toBeDefined()
       expect(new Date(body.createdAt).toISOString()).toBe(body.createdAt)
     })
@@ -246,6 +248,57 @@ describe('API', () => {
     it('returns 404 for non-existent shell', async () => {
       const res = await app.request('/api/shells/non-existent-id/like', { method: 'POST' })
       expect(res.status).toBe(404)
+      const body = await res.json()
+      expect(body.error).toBeDefined()
+    })
+  })
+
+  describe('POST /api/shells/:id/comments', () => {
+    it('adds a comment to a shell', async () => {
+      const createRes = await app.request('/api/shells', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname: 'Nick', content: 'Hello', images: [] })
+      })
+      const created: Shell = await createRes.json()
+
+      const commentRes = await app.request(`/api/shells/${created.id}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname: 'Commenter', content: 'Nice shell!' })
+      })
+      expect(commentRes.status).toBe(201)
+      const result = await commentRes.json()
+      expect(result.comment.nickname).toBe('Commenter')
+      expect(result.comment.content).toBe('Nice shell!')
+      expect(result.shell.comments).toHaveLength(1)
+    })
+
+    it('returns 404 for non-existent shell', async () => {
+      const res = await app.request('/api/shells/non-existent-id/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname: 'Commenter', content: 'Nice shell!' })
+      })
+      expect(res.status).toBe(404)
+      const body = await res.json()
+      expect(body.error).toBeDefined()
+    })
+
+    it('rejects invalid comment data', async () => {
+      const createRes = await app.request('/api/shells', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname: 'Nick', content: 'Hello', images: [] })
+      })
+      const created: Shell = await createRes.json()
+
+      const res = await app.request(`/api/shells/${created.id}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: 'Missing nickname' })
+      })
+      expect(res.status).toBe(400)
       const body = await res.json()
       expect(body.error).toBeDefined()
     })

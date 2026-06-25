@@ -1,3 +1,10 @@
+export interface Comment {
+  id: string
+  nickname: string
+  content: string
+  createdAt: string
+}
+
 export interface Shell {
   id: string
   nickname: string
@@ -7,5 +14,6 @@ export interface Shell {
   liked: boolean
   favorites: number
   favorited: boolean
+  comments: Comment[]
   createdAt: string
 }

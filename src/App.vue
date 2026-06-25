@@ -27,7 +27,7 @@ function closeLightbox() {
   <div class="app">
     <div class="container">
       <header class="header">
-        <h1>🐚 沧海拾贝</h1>
+        <h1><span class="shell-icon">🐚</span> 沧海拾贝</h1>
         <p>拾起生活里的每一枚闪光贝壳</p>
       </header>
 
@@ -96,6 +96,14 @@ body {
   color: transparent;
   margin-bottom: 8px;
   letter-spacing: 2px;
+}
+
+.header h1 .shell-icon {
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  -webkit-text-fill-color: initial;
+  color: #f59e0b;
 }
 
 .header p {

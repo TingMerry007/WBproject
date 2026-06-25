@@ -1,4 +1,4 @@
-import type { Shell } from '../types/shell.js'
+import type { Comment, Shell } from '../types/shell.js'
 
 const shells = new Map<string, Shell>()
 
@@ -16,7 +16,7 @@ export function getShellById(id: string): Shell | undefined {
   return shells.get(id)
 }
 
-export function createShell(input: Omit<Shell, 'id' | 'likes' | 'liked' | 'favorites' | 'favorited' | 'createdAt'>): Shell {
+export function createShell(input: Omit<Shell, 'id' | 'likes' | 'liked' | 'favorites' | 'favorited' | 'comments' | 'createdAt'>): Shell {
   const shell: Shell = {
     ...input,
     id: generateId(),
@@ -24,6 +24,7 @@ export function createShell(input: Omit<Shell, 'id' | 'likes' | 'liked' | 'favor
     liked: false,
     favorites: 0,
     favorited: false,
+    comments: [],
     createdAt: new Date().toISOString()
   }
   shells.set(shell.id, shell)
@@ -50,6 +51,29 @@ export function toggleFavorite(id: string): Shell | undefined {
   shell.favorited = !shell.favorited
   shell.favorites += shell.favorited ? 1 : -1
   return shell
+}
+
+export function getComments(shellId: string): Comment[] | undefined {
+  const shell = shells.get(shellId)
+  if (!shell) return undefined
+  return shell.comments
+}
+
+export function addComment(
+  shellId: string,
+  input: Pick<Comment, 'nickname' | 'content'>
+): { comment: Comment; shell: Shell } | undefined {
+  const shell = shells.get(shellId)
+  if (!shell) return undefined
+
+  const comment: Comment = {
+    id: generateId(),
+    nickname: input.nickname,
+    content: input.content,
+    createdAt: new Date().toISOString()
+  }
+  shell.comments.push(comment)
+  return { comment, shell }
 }
 
 export function resetStore(): void {

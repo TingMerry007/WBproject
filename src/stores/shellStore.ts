@@ -1,12 +1,17 @@
 import { defineStore } from 'pinia'
 import { shallowRef, computed } from 'vue'
-import type { Shell } from '@/types/shell'
+import type { Comment, Shell } from '@/types/shell'
 import * as shellApi from '@/api/shellApi'
 
 export interface AddShellPayload {
   nickname: string
   content: string
   images: string[]
+}
+
+export interface AddCommentPayload {
+  nickname: string
+  content: string
 }
 
 export const useShellStore = defineStore('shell', () => {
@@ -74,6 +79,18 @@ export const useShellStore = defineStore('shell', () => {
     }
   }
 
+  async function addComment(shellId: string, payload: AddCommentPayload): Promise<Comment | null> {
+    error.value = ''
+    try {
+      const { shell, comment } = await shellApi.createComment(shellId, payload)
+      shells.value = shells.value.map((s) => (s.id === shellId ? shell : s))
+      return comment
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '评论失败'
+      throw err
+    }
+  }
+
   return {
     shells,
     count,
@@ -84,6 +101,7 @@ export const useShellStore = defineStore('shell', () => {
     addShell,
     removeShell,
     toggleLike,
-    toggleFavorite
+    toggleFavorite,
+    addComment
   }
 })
