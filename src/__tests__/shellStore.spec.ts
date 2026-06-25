@@ -7,7 +7,8 @@ vi.mock('../api/shellApi', () => ({
   fetchShells: vi.fn(),
   createShell: vi.fn(),
   deleteShell: vi.fn(),
-  toggleShellLike: vi.fn()
+  toggleShellLike: vi.fn(),
+  toggleShellFavorite: vi.fn()
 }))
 
 const mockedShellApi = vi.mocked(shellApi)
@@ -34,6 +35,8 @@ describe('useShellStore', () => {
         images: [],
         likes: 0,
         liked: false,
+        favorites: 0,
+        favorited: false,
         createdAt: '2026-06-25T10:00:00.000Z'
       }
     ]
@@ -65,6 +68,8 @@ describe('useShellStore', () => {
       images: [],
       likes: 0,
       liked: false,
+      favorites: 0,
+      favorited: false,
       createdAt: '2026-06-25T10:00:00.000Z'
     }
     mockedShellApi.createShell.mockResolvedValue(newShell)
@@ -104,6 +109,8 @@ describe('useShellStore', () => {
         images: [],
         likes: 0,
         liked: false,
+        favorites: 0,
+        favorited: false,
         createdAt: '2026-06-25T10:00:00.000Z'
       }
     ]
@@ -114,17 +121,19 @@ describe('useShellStore', () => {
     expect(mockedShellApi.deleteShell).toHaveBeenCalledWith('1')
   })
 
-  it('toggles like via API', async () => {
+  it('toggles favorite via API', async () => {
     const updated = {
       id: '1',
       nickname: 'A',
       content: 'a',
       images: [],
-      likes: 1,
-      liked: true,
+      likes: 0,
+      liked: false,
+      favorites: 1,
+      favorited: true,
       createdAt: '2026-06-25T10:00:00.000Z'
     }
-    mockedShellApi.toggleShellLike.mockResolvedValue(updated)
+    mockedShellApi.toggleShellFavorite.mockResolvedValue(updated)
 
     const store = useShellStore()
     store.shells = [
@@ -135,13 +144,46 @@ describe('useShellStore', () => {
         images: [],
         likes: 0,
         liked: false,
+        favorites: 0,
+        favorited: false,
         createdAt: '2026-06-25T10:00:00.000Z'
       }
     ]
 
-    await store.toggleLike('1')
+    await store.toggleFavorite('1')
 
-    expect(store.shells[0].liked).toBe(true)
-    expect(store.shells[0].likes).toBe(1)
+    expect(store.shells[0].favorited).toBe(true)
+    expect(store.shells[0].favorites).toBe(1)
+  })
+
+  it('filters favorite shells', () => {
+    const store = useShellStore()
+    store.shells = [
+      {
+        id: '1',
+        nickname: 'A',
+        content: 'a',
+        images: [],
+        likes: 0,
+        liked: false,
+        favorites: 1,
+        favorited: true,
+        createdAt: '2026-06-25T10:00:00.000Z'
+      },
+      {
+        id: '2',
+        nickname: 'B',
+        content: 'b',
+        images: [],
+        likes: 0,
+        liked: false,
+        favorites: 0,
+        favorited: false,
+        createdAt: '2026-06-25T10:00:00.000Z'
+      }
+    ]
+
+    expect(store.favoriteShells).toHaveLength(1)
+    expect(store.favoriteShells[0].id).toBe('1')
   })
 })
