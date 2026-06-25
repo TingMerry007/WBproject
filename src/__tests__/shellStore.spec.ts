@@ -1,117 +1,147 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useShellStore } from '../stores/shellStore'
+import * as shellApi from '../api/shellApi'
 
-function mockLocalStorage() {
-  const store: Record<string, string> = {}
-  Object.defineProperty(globalThis, 'localStorage', {
-    value: {
-      getItem: (key: string) => store[key] ?? null,
-      setItem: (key: string, value: string) => { store[key] = value },
-      removeItem: (key: string) => { delete store[key] }
-    },
-    writable: true,
-    configurable: true
-  })
-}
+vi.mock('../api/shellApi', () => ({
+  fetchShells: vi.fn(),
+  createShell: vi.fn(),
+  deleteShell: vi.fn(),
+  toggleShellLike: vi.fn()
+}))
+
+const mockedShellApi = vi.mocked(shellApi)
 
 describe('useShellStore', () => {
   beforeEach(() => {
-    mockLocalStorage()
     setActivePinia(createPinia())
-  })
-
-  afterEach(() => {
-    globalThis.localStorage.removeItem('canghai_shells')
+    vi.resetAllMocks()
   })
 
   it('initializes with empty shells', () => {
     const store = useShellStore()
     expect(store.shells).toEqual([])
     expect(store.count).toBe(0)
+    expect(store.loading).toBe(false)
   })
 
-  it('adds a shell and persists to localStorage', () => {
+  it('loads shells from API', async () => {
+    const shells = [
+      {
+        id: '1',
+        nickname: 'A',
+        content: 'a',
+        images: [],
+        likes: 0,
+        liked: false,
+        createdAt: '2026-06-25T10:00:00.000Z'
+      }
+    ]
+    mockedShellApi.fetchShells.mockResolvedValue(shells)
+
     const store = useShellStore()
-    const shell = store.addShell({
+    await store.loadShells()
+
+    expect(store.shells).toEqual(shells)
+    expect(store.count).toBe(1)
+    expect(store.loading).toBe(false)
+  })
+
+  it('handles API load error', async () => {
+    mockedShellApi.fetchShells.mockRejectedValue(new Error('network error'))
+
+    const store = useShellStore()
+    await store.loadShells()
+
+    expect(store.error).toBe('network error')
+    expect(store.loading).toBe(false)
+  })
+
+  it('adds a shell via API', async () => {
+    const newShell = {
+      id: '2',
+      nickname: '拾贝人',
+      content: '今日份好心情',
+      images: [],
+      likes: 0,
+      liked: false,
+      createdAt: '2026-06-25T10:00:00.000Z'
+    }
+    mockedShellApi.createShell.mockResolvedValue(newShell)
+
+    const store = useShellStore()
+    const result = await store.addShell({ nickname: '拾贝人', content: '今日份好心情', images: [] })
+
+    expect(result).toEqual(newShell)
+    expect(store.shells).toContainEqual(newShell)
+    expect(mockedShellApi.createShell).toHaveBeenCalledWith({
       nickname: '拾贝人',
       content: '今日份好心情',
       images: []
     })
-
-    expect(shell.nickname).toBe('拾贝人')
-    expect(shell.content).toBe('今日份好心情')
-    expect(store.count).toBe(1)
-    expect(store.shells[0].id).toBe(shell.id)
-
-    const stored = JSON.parse(globalThis.localStorage.getItem('canghai_shells') as string)
-    expect(stored).toHaveLength(1)
-    expect(stored[0].nickname).toBe('拾贝人')
   })
 
-  it('throws when nickname is empty', () => {
+  it('handles add shell API error', async () => {
+    mockedShellApi.createShell.mockRejectedValue(new Error('invalid data'))
+
     const store = useShellStore()
-    expect(() => store.addShell({ nickname: '  ', content: 'hello', images: [] })).toThrow('请输入昵称')
+    await expect(
+      store.addShell({ nickname: '', content: '', images: [] })
+    ).rejects.toThrow('invalid data')
+
+    expect(store.error).toBe('invalid data')
   })
 
-  it('throws when content is empty', () => {
-    const store = useShellStore()
-    expect(() => store.addShell({ nickname: '拾贝人', content: '  ', images: [] })).toThrow('写下想说的话吧')
-  })
+  it('removes a shell via API', async () => {
+    mockedShellApi.deleteShell.mockResolvedValue(undefined)
 
-  it('throws when content exceeds 1000 characters', () => {
     const store = useShellStore()
-    const longContent = 'a'.repeat(1001)
-    expect(() => store.addShell({ nickname: '拾贝人', content: longContent, images: [] })).toThrow('内容不能超过 1000 字')
-  })
+    store.shells = [
+      {
+        id: '1',
+        nickname: 'A',
+        content: 'a',
+        images: [],
+        likes: 0,
+        liked: false,
+        createdAt: '2026-06-25T10:00:00.000Z'
+      }
+    ]
 
-  it('throws when images exceed 9', () => {
-    const store = useShellStore()
-    expect(() =>
-      store.addShell({ nickname: '拾贝人', content: 'hello', images: new Array(10).fill('img') })
-    ).toThrow('图片不能超过 9 张')
-  })
+    await store.removeShell('1')
 
-  it('removes a shell and updates localStorage', () => {
-    const store = useShellStore()
-    const shell = store.addShell({ nickname: 'A', content: 'a', images: [] })
-    store.removeShell(shell.id)
     expect(store.count).toBe(0)
-    expect(JSON.parse(globalThis.localStorage.getItem('canghai_shells') as string)).toEqual([])
+    expect(mockedShellApi.deleteShell).toHaveBeenCalledWith('1')
   })
 
-  it('toggles like on a shell', () => {
-    const store = useShellStore()
-    const shell = store.addShell({ nickname: 'A', content: 'a', images: [] })
+  it('toggles like via API', async () => {
+    const updated = {
+      id: '1',
+      nickname: 'A',
+      content: 'a',
+      images: [],
+      likes: 1,
+      liked: true,
+      createdAt: '2026-06-25T10:00:00.000Z'
+    }
+    mockedShellApi.toggleShellLike.mockResolvedValue(updated)
 
-    store.toggleLike(shell.id)
+    const store = useShellStore()
+    store.shells = [
+      {
+        id: '1',
+        nickname: 'A',
+        content: 'a',
+        images: [],
+        likes: 0,
+        liked: false,
+        createdAt: '2026-06-25T10:00:00.000Z'
+      }
+    ]
+
+    await store.toggleLike('1')
+
     expect(store.shells[0].liked).toBe(true)
     expect(store.shells[0].likes).toBe(1)
-
-    store.toggleLike(shell.id)
-    expect(store.shells[0].liked).toBe(false)
-    expect(store.shells[0].likes).toBe(0)
-  })
-
-  it('loads shells from localStorage', () => {
-    globalThis.localStorage.setItem(
-      'canghai_shells',
-      JSON.stringify([
-        {
-          id: 'abc',
-          nickname: '历史用户',
-          content: '历史内容',
-          images: [],
-          likes: 5,
-          liked: true,
-          createdAt: '2026-06-20T10:00:00.000Z'
-        }
-      ])
-    )
-
-    const store = useShellStore()
-    store.loadFromStorage()
-    expect(store.count).toBe(1)
-    expect(store.shells[0].nickname).toBe('历史用户')
   })
 })

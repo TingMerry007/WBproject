@@ -3,6 +3,9 @@ import { shallowRef, computed } from 'vue'
 import { useShellStore } from '@/stores/shellStore'
 import ImageUploader from './ImageUploader.vue'
 
+const MAX_CONTENT_LENGTH = 1000
+const MAX_IMAGES = 9
+
 const emit = defineEmits<{
   submitted: []
 }>()
@@ -13,10 +16,12 @@ const nickname = shallowRef('')
 const content = shallowRef('')
 const images = shallowRef<string[]>([])
 const error = shallowRef('')
+const isSubmitting = shallowRef(false)
+const uploaderKey = shallowRef(0)
 
 const contentLength = computed(() => content.value.length)
-const isOverLimit = computed(() => contentLength.value > 1000)
-const isNearLimit = computed(() => contentLength.value >= 900 && contentLength.value <= 1000)
+const isOverLimit = computed(() => contentLength.value > MAX_CONTENT_LENGTH)
+const isNearLimit = computed(() => contentLength.value >= MAX_CONTENT_LENGTH * 0.9 && contentLength.value <= MAX_CONTENT_LENGTH)
 const charCountClass = computed(() => {
   if (isOverLimit.value) return 'error'
   if (isNearLimit.value) return 'warning'
@@ -27,10 +32,25 @@ function updateImages(value: string[]) {
   images.value = value
 }
 
-function submit() {
+function validate(): string | null {
+  if (!nickname.value.trim()) return '请输入昵称'
+  if (!content.value.trim()) return '写下想说的话吧'
+  if (content.value.length > MAX_CONTENT_LENGTH) return `内容不能超过 ${MAX_CONTENT_LENGTH} 字`
+  if (images.value.length > MAX_IMAGES) return `图片不能超过 ${MAX_IMAGES} 张`
+  return null
+}
+
+async function submit() {
   error.value = ''
+  const validationError = validate()
+  if (validationError) {
+    error.value = validationError
+    return
+  }
+
+  isSubmitting.value = true
   try {
-    store.addShell({
+    await store.addShell({
       nickname: nickname.value,
       content: content.value,
       images: images.value
@@ -38,9 +58,12 @@ function submit() {
     nickname.value = ''
     content.value = ''
     images.value = []
+    uploaderKey.value++
     emit('submitted')
   } catch (err) {
     error.value = err instanceof Error ? err.message : String(err)
+  } finally {
+    isSubmitting.value = false
   }
 }
 </script>
@@ -70,11 +93,14 @@ function submit() {
       <div class="char-count" :class="charCountClass">{{ contentLength }} / 1000</div>
     </div>
 
-    <ImageUploader @change="updateImages" />
+    <ImageUploader :key="uploaderKey" @change="updateImages" />
 
     <div v-if="error" class="error-message">{{ error }}</div>
+    <div v-else-if="store.error" class="error-message">{{ store.error }}</div>
 
-    <button type="button" class="submit-btn" @click="submit">🌊 拾取贝壳</button>
+    <button type="button" class="submit-btn" @click="submit" :disabled="isSubmitting">
+      {{ isSubmitting ? '拾取中...' : '🌊 拾取贝壳' }}
+    </button>
   </div>
 </template>
 
@@ -159,9 +185,14 @@ function submit() {
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.submit-btn:hover {
+.submit-btn:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(14, 165, 233, 0.3);
+}
+
+.submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 @media (max-width: 480px) {

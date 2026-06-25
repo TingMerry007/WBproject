@@ -10,7 +10,7 @@ const lightboxSrc = shallowRef('')
 const isLightboxOpen = shallowRef(false)
 
 onMounted(() => {
-  store.loadFromStorage()
+  store.loadShells()
 })
 
 function openLightbox(src: string) {

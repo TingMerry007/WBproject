@@ -9,7 +9,10 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
-    "typecheck": "vue-tsc --noEmit"
+    "typecheck": "vue-tsc --noEmit",
+    "server:dev": "npm --prefix server run dev",
+    "server:start": "npm --prefix server run start",
+    "server:test": "npm --prefix server run test"
   },
   "dependencies": {
     "pinia": "^3.0.4",

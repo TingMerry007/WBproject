@@ -8,6 +8,14 @@ const emit = defineEmits<{
   preview: [src: string]
 }>()
 
+async function handleLike(id: string) {
+  await store.toggleLike(id)
+}
+
+async function handleDelete(id: string) {
+  await store.removeShell(id)
+}
+
 function handlePreview(src: string) {
   emit('preview', src)
 }
@@ -15,7 +23,11 @@ function handlePreview(src: string) {
 
 <template>
   <div class="list">
-    <div v-if="store.shells.length === 0" class="empty-state">
+    <div v-if="store.loading" class="loading-state">
+      <div class="loading-text">正在拾取海滩足迹...</div>
+    </div>
+
+    <div v-else-if="store.shells.length === 0" class="empty-state">
       <div class="empty-icon">🏖️</div>
       <div class="empty-text">海滩还空空如也</div>
       <div class="empty-hint">快来拾取第一枚贝壳吧~</div>
@@ -31,8 +43,8 @@ function handlePreview(src: string) {
         v-for="shell in store.shells"
         :key="shell.id"
         :shell="shell"
-        @like="store.toggleLike"
-        @delete="store.removeShell"
+        @like="handleLike"
+        @delete="handleDelete"
         @preview="handlePreview"
       />
     </div>
@@ -86,6 +98,16 @@ function handlePreview(src: string) {
 .empty-hint {
   font-size: 0.9rem;
   color: #94a3b8;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #64748b;
+}
+
+.loading-text {
+  font-size: 1.1rem;
 }
 
 .feed {

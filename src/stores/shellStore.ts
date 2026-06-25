@@ -1,11 +1,7 @@
 import { defineStore } from 'pinia'
 import { shallowRef, computed } from 'vue'
 import type { Shell } from '@/types/shell'
-import { load, save, isStorageAvailable } from '@/utils/storage'
-
-const STORAGE_KEY = 'canghai_shells'
-const MAX_CONTENT_LENGTH = 1000
-const MAX_IMAGES = 9
+import * as shellApi from '@/api/shellApi'
 
 export interface AddShellPayload {
   nickname: string
@@ -13,91 +9,67 @@ export interface AddShellPayload {
   images: string[]
 }
 
-function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
-}
-
 export const useShellStore = defineStore('shell', () => {
-  const shells = shallowRef<Shell[]>(load<Shell[]>(STORAGE_KEY) ?? [])
-
-  const sortedShells = computed(() =>
-    [...shells.value].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-  )
+  const shells = shallowRef<Shell[]>([])
+  const loading = shallowRef(false)
+  const error = shallowRef('')
 
   const count = computed(() => shells.value.length)
 
-  function persist() {
-    if (isStorageAvailable()) {
-      save(shells.value, STORAGE_KEY)
+  async function loadShells() {
+    loading.value = true
+    error.value = ''
+    try {
+      shells.value = await shellApi.fetchShells()
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '加载失败'
+    } finally {
+      loading.value = false
     }
   }
 
-  function addShell(payload: AddShellPayload): Shell {
-    const nickname = payload.nickname.trim()
-    const content = payload.content.trim()
-
-    if (!nickname) {
-      throw new Error('请输入昵称')
+  async function addShell(payload: AddShellPayload): Promise<Shell | null> {
+    error.value = ''
+    try {
+      const shell = await shellApi.createShell(payload)
+      shells.value = [shell, ...shells.value]
+      return shell
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '发布失败'
+      throw err
     }
-
-    if (!content) {
-      throw new Error('写下想说的话吧')
-    }
-
-    if (content.length > MAX_CONTENT_LENGTH) {
-      throw new Error(`内容不能超过 ${MAX_CONTENT_LENGTH} 字`)
-    }
-
-    if (payload.images.length > MAX_IMAGES) {
-      throw new Error(`图片不能超过 ${MAX_IMAGES} 张`)
-    }
-
-    const shell: Shell = {
-      id: generateId(),
-      nickname,
-      content,
-      images: payload.images,
-      likes: 0,
-      liked: false,
-      createdAt: new Date().toISOString()
-    }
-
-    shells.value = [shell, ...shells.value]
-    persist()
-    return shell
   }
 
-  function removeShell(id: string) {
-    shells.value = shells.value.filter((s) => s.id !== id)
-    persist()
+  async function removeShell(id: string) {
+    error.value = ''
+    try {
+      await shellApi.deleteShell(id)
+      shells.value = shells.value.filter((s) => s.id !== id)
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '删除失败'
+      throw err
+    }
   }
 
-  function toggleLike(id: string) {
-    shells.value = shells.value.map((s) => {
-      if (s.id !== id) return s
-      const liked = !s.liked
-      return {
-        ...s,
-        liked,
-        likes: Math.max(0, s.likes + (liked ? 1 : -1))
-      }
-    })
-    persist()
-  }
-
-  function loadFromStorage() {
-    const data = load<Shell[]>(STORAGE_KEY)
-    if (data) {
-      shells.value = data
+  async function toggleLike(id: string) {
+    error.value = ''
+    try {
+      const updated = await shellApi.toggleShellLike(id)
+      shells.value = shells.value.map((s) => (s.id === id ? updated : s))
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '点赞失败'
+      throw err
     }
   }
 
   return {
-    shells: sortedShells,
+    shells,
     count,
+    loading,
+    error,
+    loadShells,
     addShell,
     removeShell,
-    toggleLike,
-    loadFromStorage
+    toggleLike
   }
 })
