@@ -60,3 +60,10 @@ export async function toggleShellLike(id: string): Promise<Shell> {
   })
   return handleResponse(response) as Promise<Shell>
 }
+
+export async function toggleShellFavorite(id: string): Promise<Shell> {
+  const response = await fetch(`${API_BASE}/shells/${id}/favorite`, {
+    method: 'POST'
+  })
+  return handleResponse(response) as Promise<Shell>
+}

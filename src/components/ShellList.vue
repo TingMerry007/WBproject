@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { shallowRef, computed } from 'vue'
 import { useShellStore } from '@/stores/shellStore'
 import ShellCard from './ShellCard.vue'
 
@@ -8,8 +9,17 @@ const emit = defineEmits<{
   preview: [src: string]
 }>()
 
+const showFavoritesOnly = shallowRef(false)
+const displayShells = computed(() =>
+  showFavoritesOnly.value ? store.favoriteShells : store.shells
+)
+
 async function handleLike(id: string) {
   await store.toggleLike(id)
+}
+
+async function handleFavorite(id: string) {
+  await store.toggleFavorite(id)
 }
 
 async function handleDelete(id: string) {
@@ -36,14 +46,24 @@ function handlePreview(src: string) {
     <div v-else class="feed">
       <div class="feed-header">
         <h2>海滩足迹</h2>
-        <span class="feed-count">{{ store.count }} 枚贝壳</span>
+        <div class="feed-actions">
+          <label class="favorite-filter">
+            <input
+              v-model="showFavoritesOnly"
+              type="checkbox"
+            />
+            <span>只看收藏</span>
+          </label>
+          <span class="feed-count">{{ store.count }} 枚贝壳</span>
+        </div>
       </div>
 
       <ShellCard
-        v-for="shell in store.shells"
+        v-for="shell in displayShells"
         :key="shell.id"
         :shell="shell"
         @like="handleLike"
+        @favorite="handleFavorite"
         @delete="handleDelete"
         @preview="handlePreview"
       />
@@ -67,6 +87,26 @@ function handlePreview(src: string) {
 .feed-header h2 {
   font-size: 1.2rem;
   color: #334155;
+}
+
+.feed-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.favorite-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #475569;
+  cursor: pointer;
+  user-select: none;
+}
+
+.favorite-filter input {
+  cursor: pointer;
 }
 
 .feed-count {

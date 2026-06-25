@@ -9,6 +9,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   like: [id: string]
+  favorite: [id: string]
   delete: [id: string]
   preview: [src: string]
 }>()
@@ -27,6 +28,10 @@ function toggleTime() {
 
 function like() {
   emit('like', props.shell.id)
+}
+
+function favorite() {
+  emit('favorite', props.shell.id)
 }
 
 function remove() {
@@ -60,6 +65,15 @@ function displayTime() {
         >
           <span>{{ shell.liked ? '❤️' : '🤍' }}</span>
           <span>{{ shell.likes }}</span>
+        </button>
+        <button
+          type="button"
+          class="icon-btn favorite"
+          :class="{ active: shell.favorited }"
+          @click="favorite"
+        >
+          <span>{{ shell.favorited ? '⭐' : '☆' }}</span>
+          <span>{{ shell.favorites }}</span>
         </button>
         <button type="button" class="icon-btn delete" @click="remove" title="删除">
           🗑️
@@ -163,6 +177,14 @@ function displayTime() {
 
 .icon-btn.like.active:hover {
   background: rgba(236, 72, 153, 0.08);
+}
+
+.icon-btn.favorite.active {
+  color: #f59e0b;
+}
+
+.icon-btn.favorite.active:hover {
+  background: rgba(245, 158, 11, 0.08);
 }
 
 .shell-content {

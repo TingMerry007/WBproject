@@ -15,6 +15,7 @@ export const useShellStore = defineStore('shell', () => {
   const error = shallowRef('')
 
   const count = computed(() => shells.value.length)
+  const favoriteShells = computed(() => shells.value.filter((s) => s.favorited))
 
   async function loadShells() {
     loading.value = true
@@ -62,14 +63,27 @@ export const useShellStore = defineStore('shell', () => {
     }
   }
 
+  async function toggleFavorite(id: string) {
+    error.value = ''
+    try {
+      const updated = await shellApi.toggleShellFavorite(id)
+      shells.value = shells.value.map((s) => (s.id === id ? updated : s))
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '收藏失败'
+      throw err
+    }
+  }
+
   return {
     shells,
     count,
+    favoriteShells,
     loading,
     error,
     loadShells,
     addShell,
     removeShell,
-    toggleLike
+    toggleLike,
+    toggleFavorite
   }
 })
