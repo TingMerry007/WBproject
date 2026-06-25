@@ -4,7 +4,7 @@ import * as store from '../store/shellStore.js'
 
 const shellsRoute = new Hono()
 
-function validateShellInput(body: unknown): Omit<Shell, 'id' | 'likes' | 'liked' | 'createdAt'> | null {
+function validateShellInput(body: unknown): Omit<Shell, 'id' | 'likes' | 'liked' | 'favorites' | 'favorited' | 'createdAt'> | null {
   if (typeof body !== 'object' || body === null) return null
 
   const input = body as Record<string, unknown>
@@ -56,6 +56,12 @@ shellsRoute.delete('/:id', (c) => {
 
 shellsRoute.post('/:id/like', (c) => {
   const shell = store.toggleLike(c.req.param('id'))
+  if (!shell) return c.json({ error: 'Shell not found' }, 404)
+  return c.json(shell)
+})
+
+shellsRoute.post('/:id/favorite', (c) => {
+  const shell = store.toggleFavorite(c.req.param('id'))
   if (!shell) return c.json({ error: 'Shell not found' }, 404)
   return c.json(shell)
 })

@@ -9,6 +9,8 @@ interface Shell {
   images: string[]
   likes: number
   liked: boolean
+  favorites: number
+  favorited: boolean
   createdAt: string
 }
 
@@ -75,6 +77,8 @@ describe('API', () => {
       expect(body.images).toEqual([])
       expect(body.likes).toBe(0)
       expect(body.liked).toBe(false)
+      expect(body.favorites).toBe(0)
+      expect(body.favorited).toBe(false)
       expect(body.createdAt).toBeDefined()
       expect(new Date(body.createdAt).toISOString()).toBe(body.createdAt)
     })
@@ -241,6 +245,46 @@ describe('API', () => {
 
     it('returns 404 for non-existent shell', async () => {
       const res = await app.request('/api/shells/non-existent-id/like', { method: 'POST' })
+      expect(res.status).toBe(404)
+      const body = await res.json()
+      expect(body.error).toBeDefined()
+    })
+  })
+
+  describe('POST /api/shells/:id/favorite', () => {
+    it('toggles favorited from false to true and increments favorites', async () => {
+      const createRes = await app.request('/api/shells', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname: 'Nick', content: 'Hello', images: [] })
+      })
+      const created: Shell = await createRes.json()
+
+      const favoriteRes = await app.request(`/api/shells/${created.id}/favorite`, { method: 'POST' })
+      expect(favoriteRes.status).toBe(200)
+      const favorited: Shell = await favoriteRes.json()
+      expect(favorited.favorited).toBe(true)
+      expect(favorited.favorites).toBe(1)
+    })
+
+    it('toggles favorited from true to false and decrements favorites', async () => {
+      const createRes = await app.request('/api/shells', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname: 'Nick', content: 'Hello', images: [] })
+      })
+      const created: Shell = await createRes.json()
+
+      await app.request(`/api/shells/${created.id}/favorite`, { method: 'POST' })
+      const unfavoriteRes = await app.request(`/api/shells/${created.id}/favorite`, { method: 'POST' })
+      expect(unfavoriteRes.status).toBe(200)
+      const unfavorited: Shell = await unfavoriteRes.json()
+      expect(unfavorited.favorited).toBe(false)
+      expect(unfavorited.favorites).toBe(0)
+    })
+
+    it('returns 404 for non-existent shell', async () => {
+      const res = await app.request('/api/shells/non-existent-id/favorite', { method: 'POST' })
       expect(res.status).toBe(404)
       const body = await res.json()
       expect(body.error).toBeDefined()

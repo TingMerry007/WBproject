@@ -16,12 +16,14 @@ export function getShellById(id: string): Shell | undefined {
   return shells.get(id)
 }
 
-export function createShell(input: Omit<Shell, 'id' | 'likes' | 'liked' | 'createdAt'>): Shell {
+export function createShell(input: Omit<Shell, 'id' | 'likes' | 'liked' | 'favorites' | 'favorited' | 'createdAt'>): Shell {
   const shell: Shell = {
     ...input,
     id: generateId(),
     likes: 0,
     liked: false,
+    favorites: 0,
+    favorited: false,
     createdAt: new Date().toISOString()
   }
   shells.set(shell.id, shell)
@@ -38,6 +40,15 @@ export function toggleLike(id: string): Shell | undefined {
 
   shell.liked = !shell.liked
   shell.likes += shell.liked ? 1 : -1
+  return shell
+}
+
+export function toggleFavorite(id: string): Shell | undefined {
+  const shell = shells.get(id)
+  if (!shell) return undefined
+
+  shell.favorited = !shell.favorited
+  shell.favorites += shell.favorited ? 1 : -1
   return shell
 }
 

@@ -5,5 +5,7 @@ export interface Shell {
   images: string[]
   likes: number
   liked: boolean
+  favorites: number
+  favorited: boolean
   createdAt: string
 }
